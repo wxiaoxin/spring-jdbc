@@ -1,6 +1,7 @@
-package com.xx.spring.jdbc.dao;
+package com.xx.spring.jdbc.dao.impl;
 
 import com.xx.spring.jdbc.base.BaseDao;
+import com.xx.spring.jdbc.dao.IUserDao;
 import com.xx.spring.jdbc.entity.User;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -10,64 +11,94 @@ import org.springframework.stereotype.Repository;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Created by wxiao on 2016.9.19.
- *
  * 用户User实体操作类
  */
 
 @Repository
-public class UserDao extends BaseDao {
+public class UserDao extends BaseDao implements IUserDao {
 
-    /**
-     * 保存用户对象
-     * @param user
-     * @return
-     */
+    @Override
     public int save(User user) {
         String sql = "insert into t_user values(?,?,?,?,?)";
-        return jt.update(sql, user.getId(), user.getName(), user.getPwd(), user.getStatus(), user.getCreatTime());
+        return jt.update(sql, user.getId(), user.getName(), user.getPwd(), user.getStatus(), user.getCreateTime());
     }
 
-    /**
-     * 删除用户对象
-     * @param user 将要删除的对象
-     * @return
-     */
+    @Override
+    public int[] batchSave(List<User> userList) {
+        String sql = "insert into t_user values(?,?,?,?,?)";
+        List<Object[]> batchArgs = new ArrayList<>();
+        for (User user : userList) {
+            Object[] arg = new Object[]{
+                    user.getId(), user.getName(), user.getPwd(), user.getStatus(), user.getCreateTime()
+            };
+            batchArgs.add(arg);
+        }
+        return jt.batchUpdate(sql, batchArgs);
+    }
+
+    @Override
     public int del(User user) {
         String sql = "delete from t_user where id=? ";
         return jt.update(sql, user.getId());
     }
 
 
-    /**
-     * 更新
-     * @param user 将要被更新的对象
-     * @return
-     */
+    @Override
     public int update(User user) {
         String sql = "update t_user set name=? ,pwd=? ,status=? where id=? ";
         return jt.update(sql, user.getName(), user.getPwd(), user.getStatus(), user.getId());
     }
 
+    @Override
+    public int[] batchUpdate(final List<User> userList) {
 
-    /**
-     * 获取记录总数
-     * @return 记录的个数;如果记录为空则返回0
-     */
+        String sql = "update t_user set name=? ,pwd=? ,status=? ,create_time=? where id=? ";
+
+        // 使用JdbcTemplate实现批处理
+        /*return jt.batchUpdate(sql, new BatchPreparedStatementSetter() {
+            @Override
+            public void setValues(PreparedStatement ps, int i) throws SQLException {
+                User user = userList.get(i);
+                ps.setString(1, user.getName());
+                ps.setString(2, user.getPwd());
+                ps.setInt(3, user.getStatus());
+                // util.Date转sql.Date
+                ps.setDate(4, new Date(user.getCreateTime().getTime()));
+                ps.setString(5, user.getId());
+            }
+
+            @Override
+            public int getBatchSize() {
+                return userList.size();
+            }
+        });*/
+
+
+        List<Object[]> batchArgs = new ArrayList<>();
+        for (User user : userList) {
+            Object[] arg = new Object[]{
+                user.getName(), user.getPwd(), user.getStatus(), user.getCreateTime(), user.getId()
+            };
+            batchArgs.add(arg);
+        }
+        return jt.batchUpdate(sql, batchArgs);
+
+    }
+
+
+    @Override
     public int count() {
         String sql = "select count(*) from t_user";
         return jt.queryForObject(sql, Integer.class);
     }
 
 
-    /**
-     * 获取指定id的User对象
-     * @param id 用户的主键id
-     * @return 查询到的用户对象。如果查询结果为空，则返回null
-     */
+    @Override
     public User get(String id) {
         String sql = "select t.id, t.name from t_user t where t.id=? ";
         return jt.query(sql, new Object[]{id}, new ResultSetExtractor<User>() {
@@ -78,7 +109,7 @@ public class UserDao extends BaseDao {
                  * 如果结果集为空，则rs.next()返回false，此时返回null
                  * 如果结果集不为空，而由于在业务逻辑上确保只会有一条记录，则此时可以通过rs.next()将游标移动到第1条记录处，并完成结果遍历
                  */
-                if(rs.next()) {
+                if (rs.next()) {
                     return rsToUser(rs);
                 } else {
                     return null;
@@ -88,12 +119,8 @@ public class UserDao extends BaseDao {
     }
 
 
-    /**
-     * 获取指定id的User对象
-     * @param id 用户的主键id
-     * @return 查询到的用户对象。如果查询结果为空，则返回null
-     */
     @Deprecated
+    @Override
     public User get2(String id) {
         String sql = "select * from t_user t where t.id=? ";
         try {
@@ -115,28 +142,19 @@ public class UserDao extends BaseDao {
     }
 
 
-
-    /**
-     * 根据用户的id查询用户名
-     * @param id 用户id
-     * @return 用户名。如果查询结果为空则返回null
-     */
+    @Override
     public String getNameById(String id) {
         String sql = "select t.name from t_user t where t.id=? ";
         try {
             return jt.queryForObject(sql, String.class, id);
-        }catch (EmptyResultDataAccessException e) {
+        } catch (EmptyResultDataAccessException e) {
             // 当查询结果集为空时，只有通过捕捉异常才能确定结果集为空，这种编程方式不是很友好
             return null;
         }
     }
 
 
-    /**
-     * 根据状态字段查询用户列表
-     * @param status 状态码
-     * @return 用户列表
-     */
+    @Override
     public List<User> listByStatus(int status) {
         String sql = "select * from t_user t where t.status=? ";
         return jt.query(sql, new Object[]{status}, new RowMapper<User>() {
@@ -148,11 +166,7 @@ public class UserDao extends BaseDao {
     }
 
 
-    /**
-     * 根据状态值查询所有用户的姓名列表
-     * @param status 状态码
-     * @return
-     */
+    @Override
     public List<String> listNamesByStatus(int status) {
         String sql = "select DISTINCT t.name from t_user t where t.status=? ";
         return jt.queryForList(sql, String.class, status);
@@ -161,6 +175,7 @@ public class UserDao extends BaseDao {
 
     /**
      * ResultSet转成User实体对象
+     *
      * @param rs 查询到的结果集
      * @return 由结果集转换的实体User对象
      */
@@ -171,7 +186,7 @@ public class UserDao extends BaseDao {
             user.setName(rs.getString("name"));
             user.setPwd(rs.getString("pwd"));
             user.setStatus(rs.getInt("status"));
-            user.setCreatTime(rs.getDate("create_time"));
+            user.setCreateTime(rs.getDate("create_time"));
         } catch (SQLException e) {
             e.printStackTrace();
         }

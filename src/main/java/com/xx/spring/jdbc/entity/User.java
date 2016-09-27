@@ -36,7 +36,7 @@ public class User {
     /**
      * 创建时间
      */
-    private Date creatTime;
+    private Date createTime;
 
     /**
      * 空构造器
@@ -57,11 +57,11 @@ public class User {
     @Override
     public String toString() {
         return "User{" +
-                "id='" + id + '\'' +
-                ", name='" + name + '\'' +
-                ", pwd='" + pwd + '\'' +
+                "createTime=" + createTime +
                 ", status=" + status +
-                ", creatTime=" + creatTime +
+                ", pwd='" + pwd + '\'' +
+                ", name='" + name + '\'' +
+                ", id='" + id + '\'' +
                 '}';
     }
 
@@ -98,12 +98,12 @@ public class User {
     }
 
 
-    public Date getCreatTime() {
-        return creatTime;
+    public Date getCreateTime() {
+        return createTime;
     }
 
-    public void setCreatTime(Date creatTime) {
-        this.creatTime = creatTime;
+    public void setCreateTime(Date createTime) {
+        this.createTime = createTime;
     }
 
 }
